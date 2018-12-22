@@ -1,0 +1,11 @@
+--- src/main/java/net/floodlightcontroller/devicemanager/internal/DeviceManagerImpl.java	2015-04-13 19:58:43.635712423 -0500
++++ src/main/java/net/floodlightcontroller/devicemanager/internal/DeviceManagerImpl.java	2015-04-13 19:59:10.695712423 -0500
+@@ -1354,7 +1354,7 @@
+         byte[] senderHardwareAddr = arp.getSenderHardwareAddress();
+         long senderAddr = Ethernet.toLong(senderHardwareAddr);
+ 
+-        if (dlAddr == senderAddr) return;
++        //if (dlAddr == senderAddr) return;
+ 
+         // Ignore broadcast/multicast source
+         if ((senderHardwareAddr[0] & 0x1) != 0)
