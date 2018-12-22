@@ -128,11 +128,11 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 	 * Run the Bellman Ford algorithm.
 	 */
 	private HashMap<Long, Link> BellmanFord(long t) {
-		List<Long> path = new ArrayList<>();
-		HashSet<Long> vis = new HashSet<>();
-		HashMap<Long, Integer> dist = new HashMap<>();
-		HashMap<Long, Link> nxtHop = new HashMap<>();
-		LinkedList<Long> queue = new LinkedList<>();
+		List<Long> path = new ArrayList<Long>();
+		HashSet<Long> vis = new HashSet<Long>();
+		HashMap<Long, Integer> dist = new HashMap<Long, Integer>();
+		HashMap<Long, Link> nxtHop = new HashMap<Long, Link>();
+		LinkedList<Long> queue = new LinkedList<Long>();
 
 		Collection<Link> links = getLinks();
 		Collection<Long> switches = getSwitches().keySet();
@@ -174,7 +174,7 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 	 * Get the path from source host to the destination host.
 	 */
 	private Pair<List<Long>, Integer> getPath(Map<Long, Long> nxtHop, Host src, Host dst) {
-		List<Long> ans = new ArrayList<>();
+		List<Long> ans = new ArrayList<Long>();
 		long s = src.getSwitch().getId(), t = dst.getSwitch().getId();
 		long p = s;
 		int len = -1;
@@ -183,7 +183,7 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 			ans.add(p);
 			p = nxtHop.get(p);
 		} while (p != t);
-		return new Pair<>(ans, len);
+		return new Pair<List<Long>, Integer>(ans, len);
 	}
 
 	/**
@@ -218,10 +218,10 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 				SwitchCommands.removeRules(swEntity, swEntity.getTables(), ofMatch);
 			if (dst.isAttachedToSwitch() && (choice == UpdateRuleChoice.MOV_HOST || choice == UpdateRuleChoice.ADD_HOST)) {
 				OFInstructionApplyActions inst = new OFInstructionApplyActions();
-				List<OFAction> actions = new LinkedList<>();
+				List<OFAction> actions = new LinkedList<OFAction>();
 				actions.add(new OFActionOutput(getPortFromS2T(sw, link.getDst())));
 				inst.setActions(actions);
-				List<OFInstruction> instructions = new ArrayList<>();
+				List<OFInstruction> instructions = new ArrayList<OFInstruction>();
 
 				SwitchCommands.installRule(swEntity, swEntity.getTables(), SwitchCommands.DEFAULT_PRIORITY, ofMatch, instructions);
 			}
