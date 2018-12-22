@@ -218,7 +218,7 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 			ofMatch.setNetworkDestination(dst.getIPv4Address());
 
 			if (choice == UpdateRuleChoice.DEL_HOST || choice == UpdateRuleChoice.MOV_HOST)
-				SwitchCommands.removeRules(swEntity, swEntity.getTables(), ofMatch);
+				SwitchCommands.removeRules(swEntity, table, ofMatch);
 			if (dst.isAttachedToSwitch() && (choice == UpdateRuleChoice.MOV_HOST || choice == UpdateRuleChoice.ADD_HOST)) {
 				OFInstructionApplyActions inst = new OFInstructionApplyActions();
 				List<OFAction> actions = new LinkedList<OFAction>();
@@ -226,9 +226,11 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 				inst.setActions(actions);
 				List<OFInstruction> instructions = new ArrayList<OFInstruction>();
 
-				SwitchCommands.installRule(swEntity, swEntity.getTables(), SwitchCommands.DEFAULT_PRIORITY, ofMatch, instructions);
+				SwitchCommands.installRule(swEntity, table, SwitchCommands.DEFAULT_PRIORITY, ofMatch, instructions);
 			}
 		}
+
+
 	}
 
     /**
