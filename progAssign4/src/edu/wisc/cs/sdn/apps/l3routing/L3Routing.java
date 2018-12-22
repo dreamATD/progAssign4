@@ -208,6 +208,7 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 		ADD_HOST, DEL_HOST, MOV_HOST;
 	}
 	private void updateRule(Host dst, UpdateRuleChoice choice) {
+		if (dst == null) return;
 		long t = dst.getSwitch().getId();
 		for (Map.Entry<Long, IOFSwitch> entry: getSwitches().entrySet()) {
 			IOFSwitch swEntity = entry.getValue();
