@@ -118,7 +118,7 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 	 * Get update of the paths
 	 */
 	private void updateAllSwitches() {
-		nxtHopForDst = new HashMap<>();
+		nxtHopForDst = new HashMap<Long, Map<Long, Link>>();
 		for (Long sw: getSwitches().keySet()) {
 			nxtHopForDst.put(sw, BellmanFord(sw));
 		}
@@ -155,9 +155,10 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 				 long v = l.getSrc();
 				 int dv = dist.get(v);
 				 if (dv > du + 1) {
-				 	dist.replace(v, du + 1);
-				 	if (nxtHop.containsKey(v)) nxtHop.replace(v, l);
-				 	else nxtHop.put(v, l);
+				 	dist.remove(v);
+				 	dist.put(v, du + 1);
+				 	nxtHop.remove(v);
+				 	nxtHop.put(v, l);
 				 	if (!vis.contains(v)) {
 				 		vis.add(v);
 				 		queue.add(v);
