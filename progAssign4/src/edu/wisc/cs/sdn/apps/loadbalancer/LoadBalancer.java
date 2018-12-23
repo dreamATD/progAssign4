@@ -154,7 +154,7 @@ public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
 				((OFInstructionApplyActions) inst).setActions(actions);
 			break;
 			case PROC_BY_SWITCH:
-				inst = new OFInstructionGotoTable();
+				inst = new OFInstructionGotoTable(ip);
 			break;
 		}
 		return inst;
@@ -182,6 +182,7 @@ public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
 			ofMatch.setNetworkDestination(ip);
 			ofMatch.setNetworkTypeOfService(OFMatch.IP_PROTO_TCP);
 			instructions.add(generateInstructions(sw, InstOptions.SEND_PKT_TO_CONTR));
+			System.out.println("SwitchAdded (1)");
 			SwitchCommands.installRule(sw, table, SwitchCommands.DEFAULT_PRIORITY, ofMatch, instructions);
 		}
 		{
@@ -189,6 +190,7 @@ public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
 			List<OFInstruction> instructions = new ArrayList<OFInstruction>();
 			ofMatch.setField(OFOXMFieldType.ETH_TYPE, OFMatch.ETH_TYPE_ARP);
 			instructions.add(generateInstructions(sw, InstOptions.SEND_PKT_TO_CONTR));
+			System.out.println("SwitchAdded (2)");
 			SwitchCommands.installRule(sw, table, SwitchCommands.DEFAULT_PRIORITY, ofMatch, instructions);
 		}
 		/*{
