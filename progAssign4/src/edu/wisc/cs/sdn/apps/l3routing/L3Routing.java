@@ -223,6 +223,7 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 				else actions.add(new OFActionOutput(dst.getPort()));
 				inst.setActions(actions);
 				List<OFInstruction> instructions = new ArrayList<OFInstruction>();
+				instructions.add(inst);
 
 				SwitchCommands.installRule(swEntity, table, SwitchCommands.DEFAULT_PRIORITY, ofMatch, instructions);
 			}

@@ -1,15 +1,20 @@
 package edu.wisc.cs.sdn.apps.loadbalancer;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.nio.ByteBuffer;
+import java.util.*;
 
-import org.openflow.protocol.OFMessage;
-import org.openflow.protocol.OFPacketIn;
-import org.openflow.protocol.OFType;
+import edu.wisc.cs.sdn.apps.util.Host;
+import edu.wisc.cs.sdn.apps.util.SwitchCommands;
+import net.floodlightcontroller.packet.*;
+import net.floodlightcontroller.packetstreamer.thrift.Packet;
+import org.openflow.protocol.*;
 
+import org.openflow.protocol.action.OFAction;
+import org.openflow.protocol.action.OFActionOutput;
+import org.openflow.protocol.action.OFActionSetField;
+import org.openflow.protocol.instruction.OFInstruction;
+import org.openflow.protocol.instruction.OFInstructionApplyActions;
+import org.openflow.protocol.instruction.OFInstructionGotoTable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +34,6 @@ import net.floodlightcontroller.core.module.IFloodlightService;
 import net.floodlightcontroller.devicemanager.IDevice;
 import net.floodlightcontroller.devicemanager.IDeviceService;
 import net.floodlightcontroller.devicemanager.internal.DeviceManagerImpl;
-import net.floodlightcontroller.packet.Ethernet;
 import net.floodlightcontroller.util.MACAddress;
 
 public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
@@ -112,6 +116,49 @@ public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
 		
 		/*********************************************************************/
 	}
+
+	private enum InstOptions {
+		SEND_PKT_TO_CONTR,
+		REWRITE_DST_IP_MAC,
+		REWRITE_SRC_IP_MAC,
+		PROC_BY_SWITCH
+	}
+
+	private OFInstruction generateInstructions(IOFSwitch sw, InstOptions opt) {
+		return generateInstructions(sw, opt, null, null);
+	}
+
+	private OFInstruction generateInstructions(IOFSwitch sw, InstOptions opt, int tableId) {
+		return generateInstructions(sw, opt, tableId, null);
+	}
+
+	private OFInstruction generateInstructions(IOFSwitch sw, InstOptions opt, Integer ip, byte[] mac) {
+		OFInstruction inst = null;
+		List<OFAction> actions = new LinkedList<OFAction>();
+		switch (opt) {
+			case SEND_PKT_TO_CONTR:
+				actions.add(new OFActionOutput(OFPort.OFPP_CONTROLLER));
+				inst = new OFInstructionApplyActions();
+				((OFInstructionApplyActions) inst).setActions(actions);
+			break;
+			case REWRITE_DST_IP_MAC:
+				actions.add(new OFActionSetField(OFOXMFieldType.ETH_DST, mac));
+				actions.add(new OFActionSetField(OFOXMFieldType.IPV4_DST, ip));
+				inst = new OFInstructionApplyActions();
+				((OFInstructionApplyActions) inst).setActions(actions);
+			break;
+			case REWRITE_SRC_IP_MAC:
+				actions.add(new OFActionSetField(OFOXMFieldType.ETH_SRC, mac));
+				actions.add(new OFActionSetField(OFOXMFieldType.IPV4_SRC, ip));
+				inst = new OFInstructionApplyActions();
+				((OFInstructionApplyActions) inst).setActions(actions);
+			break;
+			case PROC_BY_SWITCH:
+				inst = new OFInstructionGotoTable();
+			break;
+		}
+		return inst;
+	}
 	
 	/**
      * Event handler called when a switch joins the network.
@@ -129,7 +176,26 @@ public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
 		/*       balancer IP to the controller                               */
 		/*       (2) ARP packets to the controller, and                      */
 		/*       (3) all other packets to the next rule table in the switch  */
-		
+		for (int ip: instances.keySet()) {
+			OFMatch ofMatch = new OFMatch();
+			List<OFInstruction> instructions = new ArrayList<OFInstruction>();
+			ofMatch.setNetworkDestination(ip);
+			instructions.add(generateInstructions(sw, InstOptions.SEND_PKT_TO_CONTR));
+			SwitchCommands.installRule(sw, table, SwitchCommands.DEFAULT_PRIORITY, ofMatch, instructions);
+		}
+		{
+			OFMatch ofMatch = new OFMatch();
+			List<OFInstruction> instructions = new ArrayList<OFInstruction>();
+			ofMatch.setField(OFOXMFieldType.ETH_TYPE, OFMatch.ETH_TYPE_ARP);
+			instructions.add(generateInstructions(sw, InstOptions.SEND_PKT_TO_CONTR));
+			SwitchCommands.installRule(sw, table, SwitchCommands.DEFAULT_PRIORITY, ofMatch, instructions);
+		}
+		{
+			OFMatch ofMatch = new OFMatch();
+			List<OFInstruction> instructions = new ArrayList<OFInstruction>();
+			instructions.add(generateInstructions(sw, InstOptions.PROC_BY_SWITCH, sw.getTables()));
+			SwitchCommands.installRule(sw, table, SwitchCommands.DEFAULT_PRIORITY, ofMatch, instructions);
+		}
 		/*********************************************************************/
 	}
 	
@@ -159,7 +225,74 @@ public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
 		/*       SYNs sent to a virtual IP, select a host and install        */
 		/*       connection-specific rules to rewrite IP and MAC addresses;  */
 		/*       ignore all other packets                                    */
-		
+		if (ethPkt.getEtherType() == Ethernet.TYPE_ARP) {
+			ARP arpRequest = (ARP) ethPkt.getPayload();
+			byte[] senderIP = arpRequest.getTargetProtocolAddress();
+			byte[] recverIP = arpRequest.getSenderProtocolAddress();
+			byte[] senderMAC = null;
+			byte[] recverMAC = ethPkt.getSourceMACAddress();
+
+			if (instances.containsKey(senderIP)) senderMAC = instances.get(senderIP).getVirtualMAC();
+			else senderMAC = getHostMACAddress(ByteBuffer.wrap(senderIP).getInt());
+
+			IPacket arpReply = new Ethernet()
+					.setSourceMACAddress(senderMAC)
+					.setDestinationMACAddress(recverMAC)
+					.setEtherType(Ethernet.TYPE_ARP)
+					.setPayload(
+							new ARP()
+									.setHardwareType(ARP.HW_TYPE_ETHERNET)
+									.setProtocolType(ARP.PROTO_TYPE_IP)
+									.setHardwareAddressLength((byte) 6)
+									.setProtocolAddressLength((byte) 4)
+									.setOpCode(ARP.OP_REPLY)
+									.setSenderHardwareAddress(senderMAC)
+									.setSenderProtocolAddress(senderIP)
+									.setTargetHardwareAddress(recverMAC)
+									.setTargetProtocolAddress(recverIP));
+
+			// push ARP reply out
+			SwitchCommands.sendPacket(sw, (short) pktIn.getInPort(), (Ethernet) arpReply);
+		} else if (ethPkt.getEtherType() == Ethernet.TYPE_IPv4) {
+			IPv4 ip = (IPv4) ethPkt.getPayload();
+			if (ip.getProtocol() == IPv4.PROTOCOL_TCP && ((TCP) ip.getPayload()).getFlags() == TCP_FLAG_SYN) {
+				int addr = ip.getDestinationAddress();
+				if (instances.containsKey(addr)) {
+					int hostIP = instances.get(addr).getNextHostIP();
+					byte[] hostMAC = getHostMACAddress(hostIP);
+					{
+						OFMatch ofMatch = new OFMatch();
+						List<OFInstruction> instructions = new ArrayList<OFInstruction>();
+						ofMatch.setField(OFOXMFieldType.IP_PROTO, OFMatch.IP_PROTO_TCP);
+						ofMatch.setNetworkDestination(addr);
+						instructions.add(generateInstructions(sw, InstOptions.REWRITE_DST_IP_MAC, hostIP, hostMAC));
+						instructions.add(generateInstructions(sw, InstOptions.PROC_BY_SWITCH, sw.getTables()));
+						SwitchCommands.installRule(sw, table, SwitchCommands.DEFAULT_PRIORITY, ofMatch, instructions);
+					}
+					{
+						OFMatch ofMatch = new OFMatch();
+						List<OFInstruction> instructions = new ArrayList<OFInstruction>();
+						ofMatch.setField(OFOXMFieldType.IP_PROTO, OFMatch.IP_PROTO_TCP);
+						ofMatch.setNetworkSource(addr);
+						instructions.add(generateInstructions(sw, InstOptions.REWRITE_SRC_IP_MAC, hostIP, hostMAC));
+						instructions.add(generateInstructions(sw, InstOptions.PROC_BY_SWITCH, sw.getTables()));
+						SwitchCommands.installRule(sw, table, SwitchCommands.DEFAULT_PRIORITY, ofMatch, instructions);
+					}
+				} else {
+					List<OFInstruction> instructions = new ArrayList<OFInstruction>();
+					instructions.add(generateInstructions(sw, InstOptions.PROC_BY_SWITCH, sw.getTables()));
+					SwitchCommands.installRule(sw, table, SwitchCommands.DEFAULT_PRIORITY, new OFMatch(), instructions);
+				}
+			} else {
+				List<OFInstruction> instructions = new ArrayList<OFInstruction>();
+				instructions.add(generateInstructions(sw, InstOptions.PROC_BY_SWITCH, sw.getTables()));
+				SwitchCommands.installRule(sw, table, SwitchCommands.DEFAULT_PRIORITY, new OFMatch(), instructions);
+			}
+		} else {
+			List<OFInstruction> instructions = new ArrayList<OFInstruction>();
+			instructions.add(generateInstructions(sw, InstOptions.PROC_BY_SWITCH, sw.getTables()));
+			SwitchCommands.installRule(sw, table, SwitchCommands.DEFAULT_PRIORITY, new OFMatch(), instructions);
+		}
 		/*********************************************************************/
 
 		
