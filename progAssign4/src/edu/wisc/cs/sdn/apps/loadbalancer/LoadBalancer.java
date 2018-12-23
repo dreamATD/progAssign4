@@ -153,9 +153,6 @@ public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
 				inst = new OFInstructionApplyActions();
 				((OFInstructionApplyActions) inst).setActions(actions);
 			break;
-			case PROC_BY_SWITCH:
-				inst = new OFInstructionGotoTable(ip);
-			break;
 		}
 		return inst;
 	}
