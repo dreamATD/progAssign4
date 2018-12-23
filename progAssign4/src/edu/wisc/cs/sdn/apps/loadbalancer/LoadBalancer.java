@@ -268,6 +268,7 @@ public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
 						ofMatch.setNetworkDestination(addr);
 						instructions.add(generateInstructions(sw, InstOptions.REWRITE_DST_IP_MAC, hostIP, hostMAC));
 //						instructions.add(generateInstructions(sw, InstOptions.PROC_BY_SWITCH, table));
+						System.out.println("recv (2)");
 						SwitchCommands.installRule(sw, table, SwitchCommands.DEFAULT_PRIORITY, ofMatch, instructions);
 					}
 					{
@@ -277,6 +278,7 @@ public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
 						ofMatch.setNetworkSource(addr);
 						instructions.add(generateInstructions(sw, InstOptions.REWRITE_SRC_IP_MAC, hostIP, hostMAC));
 //						instructions.add(generateInstructions(sw, InstOptions.PROC_BY_SWITCH, table));
+						System.out.println("recv (3)");
 						SwitchCommands.installRule(sw, table, SwitchCommands.DEFAULT_PRIORITY, ofMatch, instructions);
 					}
 				}
