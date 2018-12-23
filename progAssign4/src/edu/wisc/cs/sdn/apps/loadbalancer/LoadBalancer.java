@@ -231,7 +231,9 @@ public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
 		ethPkt.deserialize(pktIn.getPacketData(), 0,
 				pktIn.getPacketData().length);
 
-		System.out.println("In recv: \n" + ethPkt.toString());
+		if (ethPkt.getEtherType() == Ethernet.TYPE_ARP ||
+			ethPkt.getEtherType() == Ethernet.TYPE_IPv4)
+			System.out.println("In recv: \n" + ethPkt.toString());
 		
 		/*********************************************************************/
 		/* TODO: Send an ARP reply for ARP requests for virtual IPs; for TCP */
