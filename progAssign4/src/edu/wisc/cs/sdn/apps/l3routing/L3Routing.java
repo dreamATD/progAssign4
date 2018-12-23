@@ -194,7 +194,7 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 		return -1;
 	}
 
-	/**
+		/**
 	 * Update the rules of switches.
 	 */
 	private enum UpdateRuleChoice {
@@ -219,7 +219,8 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 			if (dst.isAttachedToSwitch() && (choice == UpdateRuleChoice.MOV_HOST || choice == UpdateRuleChoice.ADD_HOST)) {
 				OFInstructionApplyActions inst = new OFInstructionApplyActions();
 				List<OFAction> actions = new LinkedList<OFAction>();
-				actions.add(new OFActionOutput(getPortFromS2T(sw, link.getDst())));
+				if (sw != t) actions.add(new OFActionOutput(getPortFromS2T(sw, link.getDst())));
+				else actions.add(new OFActionOutput(dst.getPort()));
 				inst.setActions(actions);
 				List<OFInstruction> instructions = new ArrayList<OFInstruction>();
 
