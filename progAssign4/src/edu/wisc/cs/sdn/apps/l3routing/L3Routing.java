@@ -167,22 +167,6 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 	}
 
 	/**
-	 * Get the path from source host to the destination host.
-	 */
-	private Pair<List<Long>, Integer> getPath(Map<Long, Long> nxtHop, Host src, Host dst) {
-		List<Long> ans = new ArrayList<Long>();
-		long s = src.getSwitch().getId(), t = dst.getSwitch().getId();
-		long p = s;
-		int len = -1;
-		do {
-			++len;
-			ans.add(p);
-			p = nxtHop.get(p);
-		} while (p != t);
-		return new Pair<List<Long>, Integer>(ans, len);
-	}
-
-	/**
 	 * Search the port from s to t
 	 */
 
@@ -219,6 +203,7 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 			if (dst.isAttachedToSwitch() && (choice == UpdateRuleChoice.MOV_HOST || choice == UpdateRuleChoice.ADD_HOST)) {
 				OFInstructionApplyActions inst = new OFInstructionApplyActions();
 				List<OFAction> actions = new LinkedList<OFAction>();
+				System.out.println(link.toString());
 				if (sw != t) actions.add(new OFActionOutput(getPortFromS2T(sw, link.getDst())));
 				else actions.add(new OFActionOutput(dst.getPort()));
 				inst.setActions(actions);
