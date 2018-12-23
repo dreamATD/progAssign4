@@ -208,15 +208,17 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 		ADD_HOST, DEL_HOST, MOV_HOST;
 	}
 	private void updateRule(Host dst, UpdateRuleChoice choice) {
-		if (dst == null) return;
+		if (dst == null || dst.getSwitch() == null) return;
 		long t = dst.getSwitch().getId();
+		System.out.println(dst.toString());
+		int  addr = dst.getIPv4Address();
 		for (Map.Entry<Long, IOFSwitch> entry: getSwitches().entrySet()) {
 			IOFSwitch swEntity = entry.getValue();
 			long sw = entry.getKey();
 			Link link = nxtHopForDst.get(t).get(sw);
 			OFMatch ofMatch = new OFMatch();
 			ofMatch.setField(OFOXMFieldType.ETH_TYPE, OFMatch.ETH_TYPE_IPV4);
-			ofMatch.setNetworkDestination(dst.getIPv4Address());
+			ofMatch.setNetworkDestination(addr);
 
 			if (choice == UpdateRuleChoice.DEL_HOST || choice == UpdateRuleChoice.MOV_HOST)
 				SwitchCommands.removeRules(swEntity, table, ofMatch);
