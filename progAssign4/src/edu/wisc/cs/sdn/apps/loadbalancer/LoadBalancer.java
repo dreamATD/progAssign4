@@ -180,6 +180,7 @@ public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
 			OFMatch ofMatch = new OFMatch();
 			List<OFInstruction> instructions = new ArrayList<OFInstruction>();
 			ofMatch.setNetworkDestination(ip);
+			ofMatch.setNetworkTypeOfService(OFMatch.IP_PROTO_TCP);
 			instructions.add(generateInstructions(sw, InstOptions.SEND_PKT_TO_CONTR));
 			SwitchCommands.installRule(sw, table, SwitchCommands.DEFAULT_PRIORITY, ofMatch, instructions);
 		}
@@ -190,12 +191,13 @@ public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
 			instructions.add(generateInstructions(sw, InstOptions.SEND_PKT_TO_CONTR));
 			SwitchCommands.installRule(sw, table, SwitchCommands.DEFAULT_PRIORITY, ofMatch, instructions);
 		}
-		{
+		/*{
 			OFMatch ofMatch = new OFMatch();
 			List<OFInstruction> instructions = new ArrayList<OFInstruction>();
+			ofMatch.setNonWildcards(null);
 			instructions.add(generateInstructions(sw, InstOptions.PROC_BY_SWITCH, sw.getTables()));
-			SwitchCommands.installRule(sw, table, SwitchCommands.DEFAULT_PRIORITY, ofMatch, instructions);
-		}
+			SwitchCommands.installRule(sw, sw.getTables(), SwitchCommands.DEFAULT_PRIORITY, ofMatch, instructions);
+		}*/
 		/*********************************************************************/
 	}
 	
@@ -266,7 +268,7 @@ public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
 						ofMatch.setField(OFOXMFieldType.IP_PROTO, OFMatch.IP_PROTO_TCP);
 						ofMatch.setNetworkDestination(addr);
 						instructions.add(generateInstructions(sw, InstOptions.REWRITE_DST_IP_MAC, hostIP, hostMAC));
-						instructions.add(generateInstructions(sw, InstOptions.PROC_BY_SWITCH, sw.getTables()));
+//						instructions.add(generateInstructions(sw, InstOptions.PROC_BY_SWITCH, table));
 						SwitchCommands.installRule(sw, table, SwitchCommands.DEFAULT_PRIORITY, ofMatch, instructions);
 					}
 					{
@@ -275,23 +277,11 @@ public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
 						ofMatch.setField(OFOXMFieldType.IP_PROTO, OFMatch.IP_PROTO_TCP);
 						ofMatch.setNetworkSource(addr);
 						instructions.add(generateInstructions(sw, InstOptions.REWRITE_SRC_IP_MAC, hostIP, hostMAC));
-						instructions.add(generateInstructions(sw, InstOptions.PROC_BY_SWITCH, sw.getTables()));
+//						instructions.add(generateInstructions(sw, InstOptions.PROC_BY_SWITCH, table));
 						SwitchCommands.installRule(sw, table, SwitchCommands.DEFAULT_PRIORITY, ofMatch, instructions);
 					}
-				} else {
-					List<OFInstruction> instructions = new ArrayList<OFInstruction>();
-					instructions.add(generateInstructions(sw, InstOptions.PROC_BY_SWITCH, sw.getTables()));
-					SwitchCommands.installRule(sw, table, SwitchCommands.DEFAULT_PRIORITY, new OFMatch(), instructions);
 				}
-			} else {
-				List<OFInstruction> instructions = new ArrayList<OFInstruction>();
-				instructions.add(generateInstructions(sw, InstOptions.PROC_BY_SWITCH, sw.getTables()));
-				SwitchCommands.installRule(sw, table, SwitchCommands.DEFAULT_PRIORITY, new OFMatch(), instructions);
 			}
-		} else {
-			List<OFInstruction> instructions = new ArrayList<OFInstruction>();
-			instructions.add(generateInstructions(sw, InstOptions.PROC_BY_SWITCH, sw.getTables()));
-			SwitchCommands.installRule(sw, table, SwitchCommands.DEFAULT_PRIORITY, new OFMatch(), instructions);
 		}
 		/*********************************************************************/
 
