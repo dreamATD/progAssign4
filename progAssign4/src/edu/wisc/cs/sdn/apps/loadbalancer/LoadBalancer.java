@@ -3,6 +3,7 @@ package edu.wisc.cs.sdn.apps.loadbalancer;
 import java.nio.ByteBuffer;
 import java.util.*;
 
+import edu.wisc.cs.sdn.apps.l3routing.L3Routing;
 import edu.wisc.cs.sdn.apps.util.Host;
 import edu.wisc.cs.sdn.apps.util.SwitchCommands;
 import net.floodlightcontroller.packet.*;
@@ -153,6 +154,9 @@ public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
 				inst = new OFInstructionApplyActions();
 				((OFInstructionApplyActions) inst).setActions(actions);
 			break;
+			case PROC_BY_SWITCH:
+				inst = new OFInstructionGotoTable(ip.byteValue());
+			break;
 		}
 		return inst;
 	}
@@ -191,13 +195,13 @@ public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
 			System.out.println("SwitchAdded (2)");
 			SwitchCommands.installRule(sw, table, SwitchCommands.DEFAULT_PRIORITY, ofMatch, instructions);
 		}
-		/*{
+		{
 			OFMatch ofMatch = new OFMatch();
+			ofMatch.setDataLayerType(OFMatch.ETH_TYPE_IPV4);
 			List<OFInstruction> instructions = new ArrayList<OFInstruction>();
-			ofMatch.setNonWildcards(null);
-			instructions.add(generateInstructions(sw, InstOptions.PROC_BY_SWITCH, sw.getTables()));
+			instructions.add(generateInstructions(sw, InstOptions.PROC_BY_SWITCH, L3Routing.table));
 			SwitchCommands.installRule(sw, sw.getTables(), SwitchCommands.DEFAULT_PRIORITY, ofMatch, instructions);
-		}*/
+		}
 		/*********************************************************************/
 	}
 	
