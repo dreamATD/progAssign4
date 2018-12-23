@@ -126,14 +126,18 @@ public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
 	}
 
 	private OFInstruction generateInstructions(IOFSwitch sw, InstOptions opt) {
-		return generateInstructions(sw, opt, null, null);
+		return generateInstructions(sw, opt, null, null, null);
 	}
 
-	private OFInstruction generateInstructions(IOFSwitch sw, InstOptions opt, int tableId) {
-		return generateInstructions(sw, opt, tableId, null);
+	private OFInstruction generateInstructions(IOFSwitch sw, InstOptions opt, byte tableId) {
+		return generateInstructions(sw, opt,null, null, tableId);
 	}
 
-	private OFInstruction generateInstructions(IOFSwitch sw, InstOptions opt, Integer ip, byte[] mac) {
+	private OFInstruction generateInstructions(IOFSwitch sw, InstOptions opt, int ip, byte[] mac) {
+		return generateInstructions(sw, opt, ip, mac);
+	}
+
+	private OFInstruction generateInstructions(IOFSwitch sw, InstOptions opt, Integer ip, byte[] mac, Byte tableId) {
 		OFInstruction inst = null;
 		List<OFAction> actions = new LinkedList<OFAction>();
 		switch (opt) {
@@ -155,7 +159,7 @@ public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
 				((OFInstructionApplyActions) inst).setActions(actions);
 			break;
 			case PROC_BY_SWITCH:
-				inst = new OFInstructionGotoTable(ip.byteValue());
+				inst = new OFInstructionGotoTable(tableId);
 			break;
 		}
 		return inst;
@@ -200,6 +204,7 @@ public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
 			ofMatch.setDataLayerType(OFMatch.ETH_TYPE_IPV4);
 			List<OFInstruction> instructions = new ArrayList<OFInstruction>();
 			instructions.add(generateInstructions(sw, InstOptions.PROC_BY_SWITCH, L3Routing.table));
+			System.out.println("SwitchAdded (3)");
 			SwitchCommands.installRule(sw, sw.getTables(), SwitchCommands.DEFAULT_PRIORITY, ofMatch, instructions);
 		}
 		/*********************************************************************/
@@ -225,6 +230,8 @@ public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
 		Ethernet ethPkt = new Ethernet();
 		ethPkt.deserialize(pktIn.getPacketData(), 0,
 				pktIn.getPacketData().length);
+
+		System.out.println("In recv: \n" + ethPkt.toString());
 		
 		/*********************************************************************/
 		/* TODO: Send an ARP reply for ARP requests for virtual IPs; for TCP */

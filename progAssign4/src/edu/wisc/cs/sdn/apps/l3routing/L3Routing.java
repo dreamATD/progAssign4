@@ -203,7 +203,7 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 			if (dst.isAttachedToSwitch() && (choice == UpdateRuleChoice.MOV_HOST || choice == UpdateRuleChoice.ADD_HOST)) {
 				OFInstructionApplyActions inst = new OFInstructionApplyActions();
 				List<OFAction> actions = new LinkedList<OFAction>();
-				System.out.println(link.toString());
+//				System.out.println(link.toString());
 				if (sw != t) actions.add(new OFActionOutput(getPortFromS2T(sw, link.getDst())));
 				else actions.add(new OFActionOutput(dst.getPort()));
 				inst.setActions(actions);
