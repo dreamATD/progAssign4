@@ -131,8 +131,6 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 	 * Run the Bellman Ford algorithm.
 	 */
 	private HashMap<Long, Link> BellmanFord(long t) {
-		List<Long> path = new ArrayList<Long>();
-		HashSet<Long> vis = new HashSet<Long>();
 		HashMap<Long, Integer> dist = new HashMap<Long, Integer>();
 		HashMap<Long, Link> nxtHop = new HashMap<Long, Link>();
 		LinkedList<Long> queue = new LinkedList<Long>();
@@ -148,12 +146,10 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 		}
 
 		queue.add(t);
-		vis.add(t);
 
 		while (!queue.isEmpty()) {
 			long u = queue.pop();
 			int du = dist.get(u);
-			vis.remove(u);
 			for (Link l: links) if (l.getDst() == u) {
 				 long v = l.getSrc();
 				 int dv = dist.get(v);
@@ -162,10 +158,7 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 				 	dist.put(v, du + 1);
 				 	nxtHop.remove(v);
 				 	nxtHop.put(v, l);
-				 	if (!vis.contains(v)) {
-				 		vis.add(v);
-				 		queue.add(v);
-					}
+			 		queue.push(v);
 				 }
 			}
 		}
@@ -208,13 +201,14 @@ public class L3Routing implements IFloodlightModule, IOFSwitchListener,
 		ADD_HOST, DEL_HOST, MOV_HOST;
 	}
 	private void updateRule(Host dst, UpdateRuleChoice choice) {
-		if (dst == null || dst.getSwitch() == null) return;
+		if (dst == null || dst.getSwitch() == null || dst.getIPv4Address() == null) return;
 		long t = dst.getSwitch().getId();
-		System.out.println(dst.toString());
+		System.out.println("Dst Host: " + dst.getName());
 		int  addr = dst.getIPv4Address();
 		for (Map.Entry<Long, IOFSwitch> entry: getSwitches().entrySet()) {
 			IOFSwitch swEntity = entry.getValue();
 			long sw = entry.getKey();
+			System.out.println("Switch: " + sw);
 			Link link = nxtHopForDst.get(t).get(sw);
 			OFMatch ofMatch = new OFMatch();
 			ofMatch.setField(OFOXMFieldType.ETH_TYPE, OFMatch.ETH_TYPE_IPV4);
