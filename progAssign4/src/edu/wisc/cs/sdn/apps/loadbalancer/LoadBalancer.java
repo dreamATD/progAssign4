@@ -231,8 +231,8 @@ public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
 		ethPkt.deserialize(pktIn.getPacketData(), 0,
 				pktIn.getPacketData().length);
 
-		if (ethPkt.getEtherType() == Ethernet.TYPE_ARP ||
-			ethPkt.getEtherType() == Ethernet.TYPE_IPv4)
+//		if (ethPkt.getEtherType() == Ethernet.TYPE_ARP ||
+//			ethPkt.getEtherType() == Ethernet.TYPE_IPv4)
 			System.out.println("In recv: \n" + ethPkt.toString());
 		
 		/*********************************************************************/
@@ -270,7 +270,7 @@ public class LoadBalancer implements IFloodlightModule, IOFSwitchListener,
 			SwitchCommands.sendPacket(sw, (short) pktIn.getInPort(), (Ethernet) arpReply);
 		} else if (ethPkt.getEtherType() == Ethernet.TYPE_IPv4) {
 			IPv4 ip = (IPv4) ethPkt.getPayload();
-			if (ip.getProtocol() == IPv4.PROTOCOL_TCP && ((TCP) ip.getPayload()).getFlags() == TCP_FLAG_SYN) {
+			if (ip.getProtocol() == IPv4.PROTOCOL_TCP /*&& ((TCP) ip.getPayload()).getFlags() == TCP_FLAG_SYN*/) {
 				int addr = ip.getDestinationAddress();
 				if (instances.containsKey(addr)) {
 					int hostIP = instances.get(addr).getNextHostIP();
